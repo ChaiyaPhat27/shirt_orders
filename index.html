@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Order Status | Math Ed Batch 4</title>
+    
+    <!-- เปลี่ยนมาใช้ฟอนต์ Prompt เพื่อความโมเดิร์นและทรงพลัง -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase & FontAwesome -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-glow: #0071e3;
+            --glass-bg: rgba(20, 20, 22, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f5f5f7;
+            --text-muted: #86868b;
+            --transition-smooth: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Prompt', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Animated Dark Gradient Background */
+        body {
+            background: linear-gradient(-45deg, #0a0a0c, #14151a, #0b1021, #000000);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Top Navigation */
+        nav {
+            width: 100%;
+            padding: 15px 0;
+            background: rgba(10, 10, 12, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            text-align: center;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        nav span {
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        /* Main Container */
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 80px 20px 40px;
+            position: relative;
+        }
+
+        /* Search Section */
+        .search-section {
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            transition: var(--transition-smooth);
+        }
+
+        .search-section.hide {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            position: absolute;
+        }
+
+        .title-glow {
+            font-size: 38px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 18px 25px;
+            border-radius: 20px;
+            font-size: 18px;
+            color: white;
+            text-align: center;
+            outline: none;
+            backdrop-filter: blur(10px);
+            transition: var(--transition-smooth);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        input:focus {
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 20px rgba(0, 113, 227, 0.2);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--primary-glow);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            box-shadow: 0 10px 20px rgba(0, 113, 227, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #0077ed;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px rgba(0, 113, 227, 0.4);
+        }
+
+        /* Full Screen Success Modal (The "เล่นใหญ่" part) */
+        .success-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .success-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .success-content {
+            text-align: center;
+            transform: scale(0.8);
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 20px;
+        }
+
+        .success-modal.show .success-content {
+            transform: scale(1);
+        }
+
+        .check-icon {
+            font-size: 80px;
+            color: #34d399;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px rgba(52, 211, 153, 0.4));
+        }
+
+        .success-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .success-subtitle {
+            color: #a1a1aa;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+
+        .btn-reveal {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .btn-reveal:hover {
+            background: white;
+            color: black;
+        }
+
+        /* Details Card */
+        .details-section {
+            width: 100%;
+            max-width: 500px;
+            display: none;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .details-section.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 30px;
+            padding: 35px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+        }
+
+        .card-header {
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 25px;
+            margin-bottom: 25px;
+        }
+
+        .student-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .student-id {
+            color: var(--text-muted);
+            font-size: 15px;
+            letter-spacing: 1px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .data-label {
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+
+        .data-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .highlight-size {
+            font-size: 28px;
+            color: #60a5fa;
+            text-shadow: 0 0 15px rgba(96, 165, 250, 0.4);
+        }
+
+        .btn-back {
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-top: 25px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .btn-back:hover {
+            color: white;
+        }
+
+        /* Loader & Error */
+        .loader {
+            display: none;
+            margin: 20px auto;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid var(--primary-glow);
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .error-msg {
+            display: none;
+            color: #ef4444;
+            margin-top: 20px;
+            font-size: 15px;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 20px;
+            color: #555;
+            font-size: 12px;
+            margin-top: auto;
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 480px) {
+            .title-glow { font-size: 32px; }
+            .glass-card { padding: 25px 20px; }
+            .student-name { font-size: 20px; }
+            .data-value { font-size: 18px; }
+            .highlight-size { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <span>Math Education • Batch 4</span>
+    </nav>
+
+    <div class="container">
+        
+        <!-- ส่วนหน้าค้นหา -->
+        <div id="searchSection" class="search-section">
+            <h1 class="title-glow">ตรวจสอบ<br>สถานะการจองเสื้อ</h1>
+            <p class="subtitle">รอบที่ 1 (First Round Pre-Order)</p>
+            
+            <div class="input-group">
+                <input type="text" id="sid" placeholder="ระบุรหัสนักศึกษา 8 หลัก" autocomplete="off" inputmode="numeric">
+            </div>
+            
+            <button class="btn-primary" onclick="checkOrder()">
+                <i class="fa-solid fa-magnifying-glass" style="margin-right: 8px;"></i> ค้นหาข้อมูล
+            </button>
+            
+            <div id="loader" class="loader"></div>
+            <div id="errorMsg" class="error-msg"><i class="fa-solid fa-circle-exclamation"></i> ไม่พบรหัสนักศึกษานี้ในรอบที่ 1</div>
+        </div>
+
+        <!-- หน้าต่าง Pop-up แสดงความยินดี (เล่นใหญ่) -->
+        <div id="successModal" class="success-modal">
+            <div class="success-content">
+                <i class="fa-solid fa-circle-check check-icon"></i>
+                <h2 class="success-title">ท่านได้สั่งจองเรียบร้อยแล้ว</h2>
+                <p class="success-subtitle">ระบบได้รับข้อมูลการสั่งจองเสื้อของคุณในรอบที่ 1</p>
+                <button class="btn-reveal" onclick="showDetails()">ดูรายละเอียดการจอง</button>
+            </div>
+        </div>
+
+        <!-- การ์ดแสดงรายละเอียดเสื้อ (Glassmorphism) -->
+        <div id="detailsSection" class="details-section">
+            <div class="glass-card">
+                <div class="card-header">
+                    <h2 class="student-name" id="resName">-</h2>
+                    <p class="student-id" id="resId">-</p>
+                </div>
+                
+                <div class="data-row">
+                    <span class="data-label">ไซส์เสื้อ (Size)</span>
+                    <span class="data-value highlight-size" id="resSize">-</span>
+                </div>
+                
+                <div class="data-row">
+                    <span class="data-label">ความยาวแขน</span>
+                    <span class="data-value" id="resSleeve">-</span>
+                </div>
+
+                <div class="data-row" style="margin-bottom: 0;">
+                    <span class="data-label">สถานะ</span>
+                    <span class="data-value" style="color: #34d399; font-size: 16px;">
+                        <i class="fa-solid fa-check"></i> ยืนยันแล้ว
+                    </span>
+                </div>
+            </div>
+            
+            <button class="btn-back" onclick="resetForm()">
+                <i class="fa-solid fa-arrow-rotate-left"></i> ค้นหารหัสนักศึกษาอื่น
+            </button>
+        </div>
+
+    </div>
+
+    <footer>
+        &copy; 2026 Mathematics Education. All rights reserved.
+    </footer>
+
+    <script>
+        const SB_URL = "https://pehcsvahuounbxgqxbrt.supabase.co";
+        const SB_KEY = "sb_publishable_at6z6lMA5mhi7XpdGPjglQ_18mLDuPZ";
+        const client = supabase.createClient(SB_URL, SB_KEY);
+
+        // Elements
+        const searchSection = document.getElementById('searchSection');
+        const detailsSection = document.getElementById('detailsSection');
+        const successModal = document.getElementById('successModal');
+        const loader = document.getElementById('loader');
+        const errorMsg = document.getElementById('errorMsg');
+        const inputSid = document.getElementById('sid');
+
+        async function checkOrder() {
+            const sidValue = inputSid.value.trim();
+            if (!sidValue) {
+                inputSid.focus();
+                return;
+            }
+
+            errorMsg.style.display = 'none';
+            loader.style.display = 'block';
+
+            try {
+                const { data, error } = await client
+                    .from('shirt_orders')
+                    .select('*')
+                    .eq('student_id', sidValue)
+                    .single();
+
+                loader.style.display = 'none';
+
+                if (error || !data) {
+                    errorMsg.style.display = 'block';
+                    // สร้างแอนิเมชันสั่นเบาๆ เมื่อไม่เจอข้อมูล
+                    inputSid.style.transform = 'translateX(-5px)';
+                    setTimeout(() => inputSid.style.transform = 'translateX(5px)', 100);
+                    setTimeout(() => inputSid.style.transform = 'translateX(0)', 200);
+                } else {
+                    // จัดการชื่อ ตัดวงเล็บทิ้ง
+                    let rawName = (data.title || "") + (data.full_name || "");
+                    let cleanName = rawName.replace(/\s*\(.*?\)\s*/g, ' ').trim();
+
+                    // เตรียมข้อมูลใส่การ์ด
+                    document.getElementById('resName').innerText = cleanName;
+                    document.getElementById('resId').innerText = "รหัส: " + data.student_id;
+                    document.getElementById('resSize').innerText = data.shirt_size;
+                    document.getElementById('resSleeve').innerText = data.sleeve_length;
+
+                    // โชว์ Pop-up เล่นใหญ่!
+                    successModal.classList.add('show');
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                console.error(err);
+            }
+        }
+
+        // ฟังก์ชันเมื่อกดปุ่ม "ดูรายละเอียด" ใน Pop-up
+        function showDetails() {
+            successModal.classList.remove('show');
+            searchSection.classList.add('hide'); // ซ่อนหน้าค้นหาแบบ Smooth
+            
+            setTimeout(() => {
+                searchSection.style.display = 'none';
+                detailsSection.classList.add('show'); // โชว์การ์ดรายละเอียด
+            }, 400); // รอให้หน้าต่างเดิมจางหายไปก่อน
+        }
+
+        // ฟังก์ชันกลับไปหน้าแรก
+        function resetForm() {
+            detailsSection.classList.remove('show');
+            setTimeout(() => {
+                inputSid.value = '';
+                searchSection.style.display = 'block';
+                // Trigger reflow
+                void searchSection.offsetWidth;
+                searchSection.classList.remove('hide');
+                inputSid.focus();
+            }, 500);
+        }
+
+        // กด Enter ทำงานทันที
+        inputSid.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkOrder();
+        });
+    </script>
+</body>
+</html>
